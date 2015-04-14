@@ -1,14 +1,15 @@
-Swarmlette = function(target) {
+Swarmlette = function(target, swarm) {
 	this.target = target;
+	this.swarm = swarm;
 
-	this.SPEED = 7; // missile speed pixels/second
-	this.TURN_RATE = radians(5); // turn rate in degrees/frame
+	this.SPEED = 4; // missile speed pixels/second
+	this.TURN_RATE = radians(4); // turn rate in degrees/frame
 
 	this.WOBBLE_LIMIT = 25; // degrees
-	this.WOBBLE_SPEED = 4; // degrees in frame
+	this.WOBBLE_SPEED = 2; // degrees in frame
 
-	this.SMOKE_LIFETIME = 3000; // milliseconds
-	this.AVOID_DISTANCE = 30; // pixels
+	this.WIDTH = 3;
+	this.AVOID_DISTANCE = this.WIDTH*2; // pixels
 
 
 	this.wobbler = setupWobble({
@@ -19,14 +20,14 @@ Swarmlette = function(target) {
 	});
 
 	this.velocity = createVector(0, 0);
-	this.position = createVector(random(200), random(200));
+	this.position = createVector(0, 0);
 	this.rotation = 0;
 };
 
 
 function setupWobble(wobbler) {
 	wobbler.update = function() {
-		this.value += this.inc;
+		this.value += random(0, this.inc);
 		if (this.value >= this.max || this.value <= this.min) {
 			this.inc = -this.inc;
 		}
@@ -34,16 +35,43 @@ function setupWobble(wobbler) {
 	return wobbler;
 }
 
+Swarmlette.prototype.aimTarget = function(argument) {
+	return Math.atan2(
+			this.target.position.y - this.position.y,
+			this.target.position.x - this.position.x);
+};
+Swarmlette.prototype.wobble = function() {
+	this.wobbler.update();
+	return radians(this.wobbler.value);
+};
 
-Swarmlette.prototype.update = function() {
-	var targetAngle = Math.atan2(
-		this.target.position.y - this.position.y,
-		this.target.position.x - this.position.x);
+Swarmlette.prototype.avoidOthers = function(first_argument) {
 
-	this.wobbler.update(frameCount);
+	// Make each missile steer away from other missiles.
+	// Each missile knows the group that it belongs to (missileGroup).
+	// It can calculate its distance from all other missiles in the group and
+	// steer away from any that are too close. This avoidance behavior prevents
+	// all of the missiles from bunching up too tightly and following the
+	// same track.
+	for (var i in this.swarm) {
+		var bee = this.swarm[i];
+		if (this == bee) continue;
 
-	targetAngle += radians(this.wobbler.value);
-	console.log("wobber: " + this.wobbler.value);
+		var distance = this.position.dist(bee.position);
+
+		// If the missile is too close...
+		if (distance < this.AVOID_DISTANCE) {
+			// Chose an avoidance angle of 90 or -90 (in radians)
+			avoidAngle = Math.PI / 2;
+			return avoidAngle;
+			// return (Math.random() < 0.5) ? avoidAngle : -avoidAngle;
+		}
+	}
+
+	return 0;
+};
+
+Swarmlette.prototype.rotate = function(targetAngle) {
 	// Gradually (this.TURN_RATE) aim the missile towards the target angle
 	if (this.rotation !== targetAngle) {
 		// Calculate difference between the current angle and targetAngle
@@ -66,28 +94,31 @@ Swarmlette.prototype.update = function() {
 			this.rotation = targetAngle;
 		}
 	}
+};
 
-	// this.rotation = targetAngle;
+Swarmlette.prototype.update = function() {
+	var targetAngle = this.aimTarget();
+	targetAngle += this.wobble();
+	targetAngle += this.avoidOthers();
+	this.rotate(targetAngle);
 
-	// this.velocity = p5.Vector.fromAngle(this.rotation).mult(this.SPEED);
-	this.velocity.x = Math.cos(this.rotation) * this.SPEED;
-	this.velocity.y = Math.sin(this.rotation) * this.SPEED;
+	this.velocity = p5.Vector.fromAngle(this.rotation).mult(this.SPEED);
 
 	this.position.add(this.velocity);
 };
 
 Swarmlette.prototype.draw = function() {
 	color(255, 255, 255);
-	ellipse(this.position.x, this.position.y, 30, 30);
-	ellipse(this.position.x+this.velocity.x*5, this.position.y+this.velocity.y*5, 15, 15);
+	ellipse(this.position.x, this.position.y, 5, 5);
+	ellipse(this.position.x+this.velocity.x, this.position.y+this.velocity.y, 2, 2);
 
 };
 
 
 Swarm = function(target) {
 	this.swarm = [];
-	for (var i = 0; i < 1; i++) {
-		this.swarm.push(new Swarmlette(target));
+	for (var i = 0; i < 100; i++) {
+		this.swarm.push(new Swarmlette(target, this.swarm));
 	}
 };
 
@@ -96,8 +127,6 @@ Swarm.prototype.update = function() {
 	for(var i in this.swarm) {
 		this.swarm[i].update();
 	}
-
-
 };
 
 
