@@ -38,7 +38,7 @@ AppDispatcher.register(function(action) {
 	switch (action.actionType) {
 	case 'selected':
 		if (Board._selected) {
-			Board._armies = fight(Board._armies, [Board._selected, action.unit]);
+			Board._armies = fight(Board._armies, Board._selected, action.unit);
 			Board._selected = undefined;
 		} else {
 			Board._selected = action.unit;

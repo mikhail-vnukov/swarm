@@ -1,79 +1,109 @@
 'use strict';
 
+var times = function(n, iterator) {
+	var accum = new Array(Math.max(0, n));
+	for (var i = 0; i < n; i++) accum[i] = iterator.call(null, i);
+	return accum;
+};
+
 define(function() {
-	let i = 0;
 	class Unit {
-		constructor() {
-			this.live = true;
-			this.id = i++;
+		constructor(army, id, life) {
+			this._army = army;
+			this._id = id;
+			this._life = life;
 		}
 
-		died() {
-			return new DeadUnit(this);
+		fight(enemy) {
+			var lifeAfterFight = Math.max(this.life - enemy.life, 0);
+			return new Unit(this.army, this.id, lifeAfterFight);
 		}
+
+		get army() {
+			return this._army;
+		}
+
+		get id() {
+			return this._id;
+		}
+
+		get life() {
+			return this._life;
+		}
+
 	}
-
-	class DeadUnit extends Unit {
-		constructor(unit) {
-			super();
-			this.army = unit.army;
-			this.live = false;
-			this.id = unit.id;
-		}
-	}
-
 
 	class Army {
+
+		static create(id, size) {
+			return new Army(id, times(size, (i) =>
+				new Unit(id, i, Math.floor(Math.random()*100))));
+		}
+
 		constructor(id, units) {
-			this.units = units;
-			this.id = id;
-			let i = 0;
-			this.units.forEach(unit => {
-				unit.army = this.id;
-				unit.id = i++;
-			});
+			this._id = id;
+			this._units = units;
+		}
+
+		update(updatedUnit) {
+			var updateUnits = ((updatedUnit) =>
+				this.units.map(unit =>
+					(updatedUnit.id === unit.id) ? updatedUnit : unit));
+
+			return new Army(this.id, updateUnits(updatedUnit));
+		}
+
+		get id() {
+			return this._id;
+		}
+
+		get units() {
+			return this._units;
 		}
 	}
 
 	class Swarm extends Army {
-		constructor(units) {
-			super('swarm', units);
+		static create(size) {
+			return Army.create('swarm', size);
 		}
 	}
 
 	class Tribe extends Army {
-		constructor(units) {
-			super('tribe', units);
+		static create(size) {
+			return Army.create('tribe', size);
 		}
 	}
 
-	var died = function(armie, unitToDie) {
-		return new Army(armie.id, armie.units.map(unit => (unitToDie.id === unit.id) ? unit.died() : unit));
+	var unitsFight = function(unit1, unit2) {
+		return [unit1.fight(unit2), unit2.fight(unit1)];
 	};
 
-	var fight = function(armies, units) {
-		var isArmyAlreadyPresent = ((uniq, unit) => uniq.find(filteredUnit => (filteredUnit.army === unit.army) ? true : false));
-		var addIfArmyNotPresented = ((uniq, unit) => isArmyAlreadyPresent(uniq, unit) ? uniq : uniq.concat(unit));
-		var unitsFromDifferentArmies = units.reduce((uniq, unit) => addIfArmyNotPresented(uniq, unit), []);
-
-		if (unitsFromDifferentArmies.length > 1) {
-			var armiesAfterBattle = unitsFromDifferentArmies.map(unit => died(armies[unit.army], unit));
-			return formation(armiesAfterBattle);
-		} else {
+	var fight = function(armies, unit1, unit2) {
+		if (unit1.army === unit2.army) {
 			return armies;
 		}
+
+		var army1 = armies[unit1.army];
+		var army2 = armies[unit2.army];
+
+		var [veteran1, veteran2] = unitsFight(unit1, unit2);
+
+		army1 = army1.update(veteran1);
+		army2 = army2.update(veteran2);
+
+		return formation([army1, army2]);
 	};
 
 	var formation = function(armies) {
-		var result = armies.reduce((map, armie) => Object.assign(map, {[armie.id]: armie}), {});
-		return result;
+		return armies.reduce((map, armie) =>
+			Object.assign(map, {[armie.id]: armie}), {});
 	};
 
 	return {
 		fight: fight,
 		initial: formation([
-			new Swarm([new Unit(), new Unit()]),
-			new Tribe([new Unit(), new Unit(), new Unit()])])
+			Swarm.create(2),
+			Tribe.create(3)])
 	}
 ;
 });

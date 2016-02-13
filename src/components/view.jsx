@@ -65,32 +65,28 @@ var FightButton = React.createClass({
 
 var Swarm = React.createClass({
 	render: function() {
-		var isArmySelected = (this.props.selected != undefined)
-			&& (this.props.selected.army === this.props.army.id);
-			var selectedId = isArmySelected ? this.props.selected.id : undefined;
-
 		return (
-			<div>
-				<p>Swarm</p>
-				{this.props.army.units.map(function(unit) {
-					return <UnitView
-						key={unit.id}
-						unit={unit}
-						selected={unit.id === selectedId}/>;
-				})}
-			</div>
+			<Army name='Swarm' army={this.props.army} selected={this.props.selected} />
 		);
 	}
 });
 
 var Tribe = React.createClass({
 	render: function() {
+		return (
+			<Army name='Tribe' army={this.props.army} selected={this.props.selected} />
+		);
+	}
+});
+
+var Army = React.createClass({
+	render: function() {
 		var isArmySelected = (this.props.selected != undefined)
 			&& (this.props.selected.army === this.props.army.id);
 		var selectedId = isArmySelected ? this.props.selected.id : undefined;
 		return (
 			<div>
-				<p>Tribe</p>
+				<p>{this.props.name}</p>
 				{this.props.army.units.map(function(unit) {
 					return <UnitView
 						key={unit.id}
@@ -112,9 +108,10 @@ var UnitView = React.createClass({
 	//
 	render: function() {
 		var color = this.props.selected ? 'red': 'black';
+		var isAlive = this.props.unit.life > 0;
 		return (
-			<p style={{color: color}} onClick={this.props.unit.live ? this.click : null } >
-				{this.props.unit.live ? 'live' : 'dead'}
+			<p style={{color: color}} onClick={isAlive ? this.click : null } >
+				{this.props.unit.life}
 			</p>
 		);
 	}
