@@ -1,30 +1,58 @@
 'use strict';
 
-var React = require('react');
 require('normalize.css');
 require('../styles/main.css');
+
+var React = require('react');
 var PureRenderMixin = require('react-addons-pure-render-mixin');
 var AppDispatcher = require('../dispatcher/dispatch');
+var Board = require('./board');
 
 // var imageURL = require('../images/yeoman.png');
 
 var View = React.createClass({
-	fight: function() {
-		AppDispatcher.dispatch({actionType:'fight', 'board': this.props.board});
+
+	getInitialState: function() {
+		return Board.getState();
 	},
+
+	componentDidMount: function() {
+		Board.addChangeListener(this._onChange);
+	},
+
+	componentWillUnmount: function() {
+		Board.removeChangeListener(this._onChange);
+	},
+
+	_onChange: function() {
+		this.setState(Board.getState());
+	},
+
+	_fight: function() {
+		AppDispatcher.dispatch({
+			actionType: 'fight'
+		});
+	},
+
 	render: function() {
 		return (
 			<div>
-				<Swarm army={this.props.board.armies.swarm}/>
-				<Tribe class="tribe" army={this.props.board.armies.tribe}/>
+				<Swarm army={this.state.armies.swarm} selected={this.state.selected} />
+				<Tribe class="tribe" army={this.state.armies.tribe} selected={this.state.selected}/>
 				<FightButton onClick={this.fight}/>
+
+				{(() => {
+					if (this.state.selected) {
+						return <p>{this.state.selected.id}:{this.state.selected.army}</p>;
+					}
+				})()}
 			</div>
 		);
 	}
 });
 
 var FightButton = React.createClass({
-	clickHandler: function(){
+	clickHandler: function() {
 		this.props.onClick();
 	},
 
@@ -37,15 +65,18 @@ var FightButton = React.createClass({
 
 var Swarm = React.createClass({
 	render: function() {
-		let i = 0;
+		var isArmySelected = (this.props.selected != undefined)
+			&& (this.props.selected.army === this.props.army.id);
+			var selectedId = isArmySelected ? this.props.selected.id : undefined;
 
 		return (
 			<div>
 				<p>Swarm</p>
 				{this.props.army.units.map(function(unit) {
-					var j = i++;
-
-					return <UnitView key={j}  unit={unit}/>;
+					return <UnitView
+						key={unit.id}
+						unit={unit}
+						selected={unit.id === selectedId}/>;
 				})}
 			</div>
 		);
@@ -54,15 +85,17 @@ var Swarm = React.createClass({
 
 var Tribe = React.createClass({
 	render: function() {
-		let i = 0;
-
+		var isArmySelected = (this.props.selected != undefined)
+			&& (this.props.selected.army === this.props.army.id);
+		var selectedId = isArmySelected ? this.props.selected.id : undefined;
 		return (
 			<div>
-
 				<p>Tribe</p>
 				{this.props.army.units.map(function(unit) {
-					var j = i++;
-					return <UnitView key={j} unit={unit} />;
+					return <UnitView
+						key={unit.id}
+						unit={unit}
+						selected={unit.id === selectedId}/>;
 				})}
 			</div>
 		);
@@ -71,14 +104,21 @@ var Tribe = React.createClass({
 
 var UnitView = React.createClass({
 	click() {
-		AppDispatcher.dispatch({'actionType': 'selected', 'unit': this.props.unit});
+		AppDispatcher.dispatch({
+			'actionType': 'selected',
+			'unit': this.props.unit
+		});
 	},
-
-	render() {
-		return <p onClick={this.click} >{this.props.unit.live ? 'live' : 'dead'}</p>;
+	//
+	render: function() {
+		var color = this.props.selected ? 'red': 'black';
+		return (
+			<p style={{color: color}} onClick={this.props.unit.live ? this.click : null } >
+				{this.props.unit.live ? 'live' : 'dead'}
+			</p>
+		);
 	}
 });
 
 
 module.exports = View;
-
