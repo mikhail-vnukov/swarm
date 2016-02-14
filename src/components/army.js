@@ -14,12 +14,15 @@ define(function() {
 			this._life = life;
 		}
 
-		fight(enemy) {
-			var lifeAfterFight = Math.max(this.life - enemy.life, 0);
-			return new Unit(this.army, this.id, lifeAfterFight);
+		fight() {
+			return this;
 		}
 
 		breed() {
+			return this;
+		}
+
+		reveal() {
 			return this;
 		}
 
@@ -48,13 +51,28 @@ define(function() {
 	}
 
 	class Grunt extends Unit {
-		constructor(army, id, life) {
+		constructor(army, id, life, revealed) {
 			super(army, id, life);
+			this._revealed = revealed | false;
 		}
 
 		breed() {
-			var lifeAfterBreed = Math.floor(this.life * 1.5);
-			return new Grunt(this.army, this.id, lifeAfterBreed);
+			var lifeAfterBreed = Math.floor(this.life * 1.15);
+			return new Grunt(this.army, this.id, lifeAfterBreed, this.revealed);
+		}
+
+		get revealed() {
+			return this._revealed;
+		}
+
+		reveal() {
+			return new Grunt(this.army, this.id, this.life, true);
+		}
+
+		fight(enemy) {
+			var lifeAfterFight = Math.max(this.life - enemy.life, 0);
+			var revealed =  (lifeAfterFight <= 0) || this.revealed;
+			return new Grunt(this.army, this.id, lifeAfterFight, revealed);
 		}
 	}
 
@@ -100,7 +118,7 @@ define(function() {
 	class Swarm extends Army {
 		static create(size) {
 			return new Army(SWARM_ID, times(size, (i) =>
-				new Drone(SWARM_ID, i, Math.floor(Math.random()*50))));
+				new Drone(SWARM_ID, i, Math.floor(Math.random()*100))));
 		}
 	}
 
@@ -134,13 +152,24 @@ define(function() {
 		return formation([army1, army2]);
 	};
 
+	var reveal = function(armies, unit) {
+		return formation(Object.keys(armies).map(id => {
+			if (id === unit.army) {
+				return armies[id].update(unit.reveal()).breed();
+			} else {
+				return armies[id].breed();
+			}
+		}));
+	};
+
 	var formation = function(armies) {
-		return armies.reduce((map, armie) =>
-			Object.assign(map, {[armie.id]: armie}), {});
+		return Object.freeze(armies.reduce((map, armie) =>
+			Object.assign(map, {[armie.id]: armie}), {}));
 	};
 
 	return {
 		fight: fight,
+		reveal: reveal,
 		initial: formation([
 			Swarm.create(3),
 			Tribe.create(3)])

@@ -1,6 +1,7 @@
 var AppDispatcher = require('../dispatcher/dispatch');
 var EventEmitter = require('events').EventEmitter;
 var fight = require('./army').fight;
+var reveal = require('./army').reveal;
 
 
 
@@ -44,7 +45,11 @@ AppDispatcher.register(function(action) {
 			Board._armies = fight(Board._armies, Board._selected, action.unit);
 			Board._selected = undefined;
 		} else {
-			Board._selected = action.unit;
+			if (action.unit.army === 'tribe') {
+				Board._armies = reveal(Board._armies, action.unit);
+			} else {
+				Board._selected = action.unit;
+			}
 		}
 		break;
 	case 'reset':

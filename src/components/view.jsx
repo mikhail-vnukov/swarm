@@ -51,32 +51,28 @@ var View = React.createClass({
 	}
 });
 
-var Swarm = React.createClass({
-	render: function() {
-		return (
-			<Army name='Swarm' army={this.props.army} selected={this.props.selected} />
-		);
-	}
-});
-
-var Tribe = React.createClass({
-	render: function() {
-		return (
-			<Army name='Tribe' army={this.props.army} selected={this.props.selected} />
-		);
-	}
-});
-
-var Army = React.createClass({
-	render: function() {
+var ArmyMixin = {
+	getInitialState() {
 		var isArmySelected = (this.props.selected != undefined)
 			&& (this.props.selected.army === this.props.army.id);
 		var selectedId = isArmySelected ? this.props.selected.id : undefined;
+
+		return {
+			selected: selectedId
+		};
+	}
+};
+
+
+var Swarm = React.createClass({
+	mixins: [ArmyMixin],
+	render: function() {
+		var selectedId = this.state.selected;
 		return (
 			<div>
-				<p>{this.props.name}</p>
+				<p>Swarm</p>
 				{this.props.army.units.map(function(unit) {
-					return <UnitView
+					return <Drone
 						key={unit.id}
 						unit={unit}
 						selected={unit.id === selectedId}/>;
@@ -86,20 +82,59 @@ var Army = React.createClass({
 	}
 });
 
-var UnitView = React.createClass({
+var Tribe = React.createClass({
+	mixins: [ArmyMixin],
+	render: function() {
+		var selectedId = this.state.selected;
+
+		return (
+			<div>
+				<p>Tribe</p>
+				{this.props.army.units.map(function(unit) {
+					return <GruntView
+						key={unit.id}
+						unit={unit}
+						selected={unit.id === selectedId}/>;
+				})}
+			</div>
+		);
+	}
+});
+
+var Drone = React.createClass({
 	click() {
 		AppDispatcher.dispatch({
 			'actionType': 'selected',
 			'unit': this.props.unit
 		});
 	},
-	//
+
 	render: function() {
 		var color = this.props.selected ? 'red': 'black';
 		var isAlive = this.props.unit.life > 0;
 		return (
 			<p style={{color: color}} onClick={isAlive ? this.click : null } >
 				{this.props.unit.life}
+			</p>
+		);
+	}
+});
+
+var GruntView = React.createClass({
+	click() {
+		AppDispatcher.dispatch({
+			'actionType': 'selected',
+			'unit': this.props.unit
+		});
+	},
+
+	render: function() {
+		var color = this.props.selected ? 'red': 'black';
+		var isAlive = this.props.unit.life > 0;
+		var display = this.props.unit.revealed ? this.props.unit.life : 'xxx';
+		return (
+			<p style={{color: color}} onClick={isAlive ? this.click : null } >
+				{display}
 			</p>
 		);
 	}
