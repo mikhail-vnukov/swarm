@@ -19,6 +19,10 @@ define(function() {
 			return new Unit(this.army, this.id, lifeAfterFight);
 		}
 
+		breed() {
+			return this;
+		}
+
 		get army() {
 			return this._army;
 		}
@@ -30,7 +34,28 @@ define(function() {
 		get life() {
 			return this._life;
 		}
+	}
 
+	class Drone extends Unit {
+		constructor(army, id, life) {
+			super(army, id, life);
+		}
+
+		fight(enemy) {
+			var lifeAfterFight = (this.life - enemy.life < 0) ? 0 : (this.life + enemy.life);
+			return new Drone(this.army, this.id, lifeAfterFight);
+		}
+	}
+
+	class Grunt extends Unit {
+		constructor(army, id, life) {
+			super(army, id, life);
+		}
+
+		breed() {
+			var lifeAfterBreed = Math.floor(this.life * 1.5);
+			return new Grunt(this.army, this.id, lifeAfterBreed);
+		}
 	}
 
 	class Army {
@@ -43,6 +68,13 @@ define(function() {
 		constructor(id, units) {
 			this._id = id;
 			this._units = units;
+		}
+
+		breed() {
+			var breedUnits = function(units) {
+				return units.map(unit => unit.breed());
+			};
+			return new Army(this.id, breedUnits(this.units));
 		}
 
 		update(updatedUnit) {
@@ -62,15 +94,20 @@ define(function() {
 		}
 	}
 
+	const SWARM_ID = 'swarm';
+	const TRIBE_ID = 'tribe';
+
 	class Swarm extends Army {
 		static create(size) {
-			return Army.create('swarm', size);
+			return new Army(SWARM_ID, times(size, (i) =>
+				new Drone(SWARM_ID, i, Math.floor(Math.random()*50))));
 		}
 	}
 
 	class Tribe extends Army {
 		static create(size) {
-			return Army.create('tribe', size);
+			return new Army(TRIBE_ID, times(size, (i) =>
+				new Grunt(TRIBE_ID, i, Math.floor(Math.random()*100))));
 		}
 	}
 
@@ -91,6 +128,9 @@ define(function() {
 		army1 = army1.update(veteran1);
 		army2 = army2.update(veteran2);
 
+		army1 = army1.breed();
+		army2 = army2.breed();
+
 		return formation([army1, army2]);
 	};
 
@@ -102,7 +142,7 @@ define(function() {
 	return {
 		fight: fight,
 		initial: formation([
-			Swarm.create(2),
+			Swarm.create(3),
 			Tribe.create(3)])
 	}
 ;

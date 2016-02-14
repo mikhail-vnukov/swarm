@@ -28,9 +28,9 @@ var View = React.createClass({
 		this.setState(Board.getState());
 	},
 
-	_fight: function() {
+	_reset: function() {
 		AppDispatcher.dispatch({
-			actionType: 'fight'
+			actionType: 'reset'
 		});
 	},
 
@@ -39,7 +39,7 @@ var View = React.createClass({
 			<div>
 				<Swarm army={this.state.armies.swarm} selected={this.state.selected} />
 				<Tribe class="tribe" army={this.state.armies.tribe} selected={this.state.selected}/>
-				<FightButton onClick={this.fight}/>
+				<button onClick={this._reset}>reset</button>
 
 				{(() => {
 					if (this.state.selected) {
@@ -47,18 +47,6 @@ var View = React.createClass({
 					}
 				})()}
 			</div>
-		);
-	}
-});
-
-var FightButton = React.createClass({
-	clickHandler: function() {
-		this.props.onClick();
-	},
-
-	render: function() {
-		return (
-			<button onClick={this.clickHandler}>fight</button>
 		);
 	}
 });

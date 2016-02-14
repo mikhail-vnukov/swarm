@@ -7,8 +7,11 @@ var fight = require('./army').fight;
 var CHANGE_EVENT = 'change';
 
 var Board = Object.assign({}, EventEmitter.prototype, {
-	_armies: require('./army').initial,
-	_selected: undefined,
+
+	reset: function() {
+		this._armies = require('./army').initial;
+		this._selected = undefined;
+	},
 
 	getState: function() {
 		return {
@@ -44,8 +47,14 @@ AppDispatcher.register(function(action) {
 			Board._selected = action.unit;
 		}
 		break;
+	case 'reset':
+		Board.reset();
+		break;
 	}
+
 	Board.emitChange();
 });
+
+Board.reset();
 
 module.exports = Board;
