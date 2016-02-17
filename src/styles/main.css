@@ -40,6 +40,9 @@ html, body {
   opacity: 0.01;
 }
 
-.sold {
-	background-color: red;
+.clickable {
+	cursor: pointer;
+}
+.selected {
+	color: red;
 }

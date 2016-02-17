@@ -7,6 +7,7 @@ var React = require('react');
 var PureRenderMixin = require('react-addons-pure-render-mixin');
 var AppDispatcher = require('../dispatcher/dispatch');
 var Board = require('./board');
+var classnames = require('classnames');
 
 // var imageURL = require('../images/yeoman.png');
 
@@ -51,28 +52,25 @@ var View = React.createClass({
 	}
 });
 
-var ArmyMixin = {
-	getInitialState() {
-		var isArmySelected = (this.props.selected != undefined)
-			&& (this.props.selected.army === this.props.army.id);
-		var selectedId = isArmySelected ? this.props.selected.id : undefined;
-
-		return {
-			selected: selectedId
-		};
+var Selection = {
+	componentWillReceiveProps(nextProps) {
+		var isArmySelected = (nextProps.selected != undefined)
+			&& (nextProps.selected.army === nextProps.army.id);
+		this.setState({selectedId: (isArmySelected ? nextProps.selected.id : undefined)});
 	}
 };
 
 
 var Swarm = React.createClass({
-	mixins: [ArmyMixin],
+	mixins: [Selection],
+
 	render: function() {
-		var selectedId = this.state.selected;
+		var selectedId = this.state ? this.state.selectedId : undefined;
 		return (
 			<div>
 				<p>Swarm</p>
 				{this.props.army.units.map(function(unit) {
-					return <Drone
+					return <DroneView
 						key={unit.id}
 						unit={unit}
 						selected={unit.id === selectedId}/>;
@@ -83,25 +81,21 @@ var Swarm = React.createClass({
 });
 
 var Tribe = React.createClass({
-	mixins: [ArmyMixin],
 	render: function() {
-		var selectedId = this.state.selected;
-
 		return (
 			<div>
 				<p>Tribe</p>
 				{this.props.army.units.map(function(unit) {
 					return <GruntView
 						key={unit.id}
-						unit={unit}
-						selected={unit.id === selectedId}/>;
+						unit={unit} />;
 				})}
 			</div>
 		);
 	}
 });
 
-var Drone = React.createClass({
+var DroneView = React.createClass({
 	click() {
 		AppDispatcher.dispatch({
 			'actionType': 'selected',
@@ -111,9 +105,11 @@ var Drone = React.createClass({
 
 	render: function() {
 		var color = this.props.selected ? 'red': 'black';
-		var isAlive = this.props.unit.life > 0;
+		var isClickable = this.props.unit.life > 0;
+		var classes = classnames('drone',
+			{selected: this.props.selected}, {clickable: isClickable});
 		return (
-			<p style={{color: color}} onClick={isAlive ? this.click : null } >
+			<p className={classes} onClick={isClickable ? this.click : null } >
 				{this.props.unit.life}
 			</p>
 		);
@@ -129,12 +125,13 @@ var GruntView = React.createClass({
 	},
 
 	render: function() {
-		var color = this.props.selected ? 'red': 'black';
-		var isAlive = this.props.unit.life > 0;
-		var display = this.props.unit.revealed ? this.props.unit.life : 'xxx';
+		var isClickable = (this.props.unit.life > 0) && !this.props.unit.revealed;
+		var classes = classnames('grunt', {
+			clickable: isClickable
+		});
 		return (
-			<p style={{color: color}} onClick={isAlive ? this.click : null } >
-				{display}
+			<p className={classes} onClick={isClickable ? this.click : null } >
+				{this.props.unit.display}
 			</p>
 		);
 	}

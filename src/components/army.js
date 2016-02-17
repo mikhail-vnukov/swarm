@@ -37,6 +37,10 @@ define(function() {
 		get life() {
 			return this._life;
 		}
+
+		get display() {
+			return this._life;
+		}
 	}
 
 	class Drone extends Unit {
@@ -51,38 +55,46 @@ define(function() {
 	}
 
 	class Grunt extends Unit {
-		constructor(army, id, life, revealed) {
+
+		constructor(army, id, life, display) {
 			super(army, id, life);
-			this._revealed = revealed | false;
+			this._display = (display === undefined) ? 'XXX' : display;
+		}
+
+		_generateDisplay(life) {
+			var basis = Math.random()*5 + 2; //2-7
+			var halfRange = life/(basis*2); // from (life/5) - to (life/10)
+			var lowest = Math.floor((life - halfRange) + Math.random()*halfRange);
+			var highest = Math.ceil(lowest + halfRange*2);
+			if (lowest === highest) {
+				return life;
+			} else {
+				return lowest + '-' + highest;
+			}
+
 		}
 
 		breed() {
 			var lifeAfterBreed = Math.floor(this.life * 1.15);
-			return new Grunt(this.army, this.id, lifeAfterBreed, this.revealed);
+			return new Grunt(this.army, this.id, lifeAfterBreed, this.display);
 		}
 
-		get revealed() {
-			return this._revealed;
+		get display() {
+			return this._display;
 		}
 
-		reveal() {
-			return new Grunt(this.army, this.id, this.life, true);
+		get life() {
+			return this._life;
 		}
 
 		fight(enemy) {
 			var lifeAfterFight = Math.max(this.life - enemy.life, 0);
-			var revealed =  (lifeAfterFight <= 0) || this.revealed;
-			return new Grunt(this.army, this.id, lifeAfterFight, revealed);
+			var revealedLife = this._generateDisplay(lifeAfterFight);
+			return new Grunt(this.army, this.id, lifeAfterFight, revealedLife);
 		}
 	}
 
 	class Army {
-
-		static create(id, size) {
-			return new Army(id, times(size, (i) =>
-				new Unit(id, i, Math.floor(Math.random()*100))));
-		}
-
 		constructor(id, units) {
 			this._id = id;
 			this._units = units;
@@ -118,7 +130,7 @@ define(function() {
 	class Swarm extends Army {
 		static create(size) {
 			return new Army(SWARM_ID, times(size, (i) =>
-				new Drone(SWARM_ID, i, Math.floor(Math.random()*100))));
+				new Drone(SWARM_ID, i, Math.floor(Math.random()*70))));
 		}
 	}
 
@@ -153,12 +165,14 @@ define(function() {
 	};
 
 	var reveal = function(armies, unit) {
+
 		return formation(Object.keys(armies).map(id => {
+			var army = armies[id].breed();
 			if (id === unit.army) {
-				return armies[id].update(unit.reveal()).breed();
-			} else {
-				return armies[id].breed();
+				var bredUnit = armies[id].units[unit.id];
+				army = army.update(bredUnit.reveal());
 			}
+			return army;
 		}));
 	};
 
