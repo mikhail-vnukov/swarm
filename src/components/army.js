@@ -1,11 +1,5 @@
 'use strict';
 
-var times = function(n, iterator) {
-	var accum = new Array(Math.max(0, n));
-	for (var i = 0; i < n; i++) accum[i] = iterator.call(null, i);
-	return accum;
-};
-
 define(function() {
 	class Unit {
 		constructor(army, id, life) {
@@ -43,22 +37,25 @@ define(function() {
 		}
 	}
 
+	const SWARM_ID = 'swarm';
+	const TRIBE_ID = 'tribe';
+
 	class Drone extends Unit {
-		constructor(army, id, life) {
-			super(army, id, life);
+		constructor(id, life) {
+			super(SWARM_ID, id, life);
 		}
 
 		fight(enemy) {
 			var lifeAfterFight = (this.life - enemy.life < 0) ? 0 : (this.life + enemy.life);
-			return new Drone(this.army, this.id, lifeAfterFight);
+			return new Drone(this.id, lifeAfterFight);
 		}
 	}
 
 	class Grunt extends Unit {
 
-		constructor(army, id, life, display) {
-			super(army, id, life);
-			this._display = (display === undefined) ? 'XXX' : display;
+		constructor(id, life, display, justFought) {
+			super(TRIBE_ID, id, life, justFought);
+			this._display = (display === undefined) ? this._maskedLife() : display;
 		}
 
 		_generateDisplay(life) {
@@ -71,12 +68,29 @@ define(function() {
 			} else {
 				return lowest + '-' + highest;
 			}
-
 		}
 
 		breed() {
+			if (this._justFought) {
+				return new Grunt(this.id, this._life, this._display);
+			}
 			var lifeAfterBreed = Math.floor(this.life * 1.15);
-			return new Grunt(this.army, this.id, lifeAfterBreed, this.display);
+			// var displayAfterBreed = this._maskedLife();
+			return new Grunt(this.id, lifeAfterBreed, this._display);
+		}
+
+		_maskedLife() {
+			var masked = 'X';
+			if (this._life >= 10) {
+				masked += 'X';
+			}
+			if (this._life >= 50) {
+				masked += 'X';
+			}
+			if (this._life >= 100) {
+				masked += 'X';
+			}
+			return masked;
 		}
 
 		get display() {
@@ -90,7 +104,7 @@ define(function() {
 		fight(enemy) {
 			var lifeAfterFight = Math.max(this.life - enemy.life, 0);
 			var revealedLife = this._generateDisplay(lifeAfterFight);
-			return new Grunt(this.army, this.id, lifeAfterFight, revealedLife);
+			return new Grunt(this.id, lifeAfterFight, revealedLife, true);
 		}
 	}
 
@@ -124,20 +138,17 @@ define(function() {
 		}
 	}
 
-	const SWARM_ID = 'swarm';
-	const TRIBE_ID = 'tribe';
-
 	class Swarm extends Army {
-		static create(size) {
-			return new Army(SWARM_ID, times(size, (i) =>
-				new Drone(SWARM_ID, i, Math.floor(Math.random()*70))));
+		static create(sizes) {
+			let i = 0;
+			return new Army(SWARM_ID, sizes.map(size => new Drone(i++, size)));
 		}
 	}
 
 	class Tribe extends Army {
-		static create(size) {
-			return new Army(TRIBE_ID, times(size, (i) =>
-				new Grunt(TRIBE_ID, i, Math.floor(Math.random()*100))));
+		static create(sizes) {
+			let i = 0;
+			return new Army(TRIBE_ID, sizes.map(size => new Grunt(i++, size)));
 		}
 	}
 
@@ -145,35 +156,20 @@ define(function() {
 		return [unit1.fight(unit2), unit2.fight(unit1)];
 	};
 
-	var fight = function(armies, unit1, unit2) {
-		if (unit1.army === unit2.army) {
-			return armies;
-		}
+	var fight = function(swarm, tribe, drone, grunt) {
+		var [vetDrone, vetGrunt] = unitsFight(drone, grunt);
 
-		var army1 = armies[unit1.army];
-		var army2 = armies[unit2.army];
+		swarm = swarm.update(vetDrone);
+		tribe = tribe.update(vetGrunt);
 
-		var [veteran1, veteran2] = unitsFight(unit1, unit2);
+		swarm = swarm.breed();
+		tribe = tribe.breed();
 
-		army1 = army1.update(veteran1);
-		army2 = army2.update(veteran2);
-
-		army1 = army1.breed();
-		army2 = army2.breed();
-
-		return formation([army1, army2]);
+		return [swarm, tribe];
 	};
 
-	var reveal = function(armies, unit) {
-
-		return formation(Object.keys(armies).map(id => {
-			var army = armies[id].breed();
-			if (id === unit.army) {
-				var bredUnit = armies[id].units[unit.id];
-				army = army.update(bredUnit.reveal());
-			}
-			return army;
-		}));
+	var reveal = function(army, unit) {
+		return army.update(unit.reveal());
 	};
 
 	var formation = function(armies) {
@@ -181,12 +177,13 @@ define(function() {
 			Object.assign(map, {[armie.id]: armie}), {}));
 	};
 
+	var swarm = Swarm.create([2, 2]);
+	var tribe = Tribe.create([1, 1, 1, 5, 5, 5, 10, 15, 20, 38]);
+
 	return {
 		fight: fight,
 		reveal: reveal,
-		initial: formation([
-			Swarm.create(3),
-			Tribe.create(3)])
+		initial: formation([swarm, tribe])
 	}
 ;
 });

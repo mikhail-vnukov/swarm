@@ -38,8 +38,8 @@ var View = React.createClass({
 	render: function() {
 		return (
 			<div>
-				<Swarm army={this.state.armies.swarm} selected={this.state.selected} />
-				<Tribe class="tribe" army={this.state.armies.tribe} selected={this.state.selected}/>
+				<Swarm army={this.state.swarm} selected={this.state.selected} />
+				<Tribe class="tribe" army={this.state.tribe} selected={this.state.selected}/>
 				<button onClick={this._reset}>reset</button>
 
 				{(() => {
