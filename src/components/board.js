@@ -1,8 +1,7 @@
 var AppDispatcher = require('../dispatcher/dispatch');
 var EventEmitter = require('events').EventEmitter;
 var fight = require('./army').fight;
-
-
+var pick = require('./army').pick;
 
 var CHANGE_EVENT = 'change';
 
@@ -12,6 +11,10 @@ var Board = Object.assign({}, EventEmitter.prototype, {
 		this._swarm = require('./army').initial.swarm;
 		this._tribe = require('./army').initial.tribe;
 		this._selected = undefined;
+	},
+
+	pick: function() {
+		this._swarm = pick(this._swarm);
 	},
 
 	getState: function() {
@@ -53,6 +56,9 @@ AppDispatcher.register(function(action) {
 		break;
 	case 'reset':
 		Board.reset();
+		break;
+	case 'pick':
+		Board.pick();
 		break;
 	}
 

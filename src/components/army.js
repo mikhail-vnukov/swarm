@@ -168,8 +168,17 @@ define(function() {
 		return [swarm, tribe];
 	};
 
-	var reveal = function(army, unit) {
-		return army.update(unit.reveal());
+	var pick = function(swarm) {
+		var units = swarm.units.slice();
+		var firstUnit = units.splice(0, 1)[0];
+		if (firstUnit.life <= 1) {
+			return swarm;
+		}
+		units = [].concat(
+			new Drone(firstUnit.id, firstUnit.life-1),
+			units,
+			new Drone(units.length+2, 1));
+		return new Army(swarm.id, units);
 	};
 
 	var formation = function(armies) {
@@ -177,12 +186,12 @@ define(function() {
 			Object.assign(map, {[armie.id]: armie}), {}));
 	};
 
-	var swarm = Swarm.create([2, 2]);
+	var swarm = Swarm.create([4]);
 	var tribe = Tribe.create([1, 1, 1, 5, 5, 5, 10, 15, 20, 38]);
 
 	return {
 		fight: fight,
-		reveal: reveal,
+		pick: pick,
 		initial: formation([swarm, tribe])
 	}
 ;

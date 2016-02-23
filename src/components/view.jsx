@@ -35,12 +35,19 @@ var View = React.createClass({
 		});
 	},
 
+	_pick: function() {
+		AppDispatcher.dispatch({
+			actionType: 'pick'
+		});
+	},
+
 	render: function() {
 		return (
 			<div>
 				<Swarm army={this.state.swarm} selected={this.state.selected} />
 				<Tribe class="tribe" army={this.state.tribe} selected={this.state.selected}/>
 				<button onClick={this._reset}>reset</button>
+				<button onClick={this._pick}>pick</button>
 
 				{(() => {
 					if (this.state.selected) {
